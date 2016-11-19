@@ -83,6 +83,15 @@ public class MainActivity extends AppCompatActivity {
                     }
                 })
                 .subscribeOn(Schedulers.newThread())
+                //在io里执行缓存操作 ， 在主线程将缓存的内容取出来！！可以这么做
+                .subscribeOn(Schedulers.io())
+                .doOnNext(new Action1<NewsContent>() {
+                    @Override
+                    public void call(NewsContent newsContent) {
+                        ACache.get(MainActivity.this).put("news" , newsContent);
+                    }
+                })
+
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<NewsContent>() {
                     @Override
@@ -99,7 +108,9 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(NewsContent newsContent) {
-                        Logger.d(newsContent.toString());
+                      //  Logger.d(newsContent.toString());
+
+                        Logger.d("000"+ ACache.get(MainActivity.this).getAsObject("news").toString());
                         ProgressUtil.dismissDialog();//取消
                     }
                 });
