@@ -12,13 +12,15 @@ public class MultipleClick {
      * 防止多次点击 在点击事件里面调用
      * */
     public static void blockView(final View view) {
-        view.setEnabled(false);
+        view.setClickable(false);
         new Handler().postDelayed(new Runnable() {
 
             @Override
             public void run() {
-                view.setEnabled(true);
+                view.setClickable(true);
             }
-        }, 500);
+        }, 5000);
+
+
     }
 }

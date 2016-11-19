@@ -26,6 +26,7 @@ import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 import rx.Observable;
 import rx.Subscriber;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
@@ -47,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView mTextView;
     private ImageView mImageView;
     private Button mButton;
+    private Subscription mSubscribe;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
         // doStartImg();
 
         // loadContent();
+
 
 
         mButton.setOnClickListener(new View.OnClickListener() {
@@ -70,7 +73,22 @@ public class MainActivity extends AppCompatActivity {
     private void loadContentRX() {
         ProgressUtil.showDialog(MainActivity.this);//显示dialog
 
-        ServiceManager.getManager().mAPIService
+        //添加防抖操作，多次点击
+//这个方法
+//因为没有api就用知乎日报的，return 里面写的内容就是再次进行了网路请求
+// .subscribeOn(Schedulers.newThread())
+//在io里执行缓存操作 ， 在主线程将缓存的内容取出来！！可以这么做
+//                .doOnNext(new Action1<NewsContent>() {
+//                    @Override
+//                    public void call(NewsContent newsContent) {
+//                        ACache.get(MainActivity.this).put("news" , newsContent);
+//                    }
+//                })
+//取消
+//取消
+//  Logger.d("000"+ ACache.get(MainActivity.this).getAsObject("news").toString());
+//取消
+        mSubscribe = ServiceManager.getManager().mAPIService
                 .loadNewsLatsetRX("latest")
                 .throttleFirst(5000, TimeUnit.MINUTES)//添加防抖操作，多次点击
                 //这个方法
@@ -82,15 +100,15 @@ public class MainActivity extends AppCompatActivity {
                         return ServiceManager.getManager().mAPIService.loadNewContentRX(id);
                     }
                 })
-                .subscribeOn(Schedulers.newThread())
+                // .subscribeOn(Schedulers.newThread())
                 //在io里执行缓存操作 ， 在主线程将缓存的内容取出来！！可以这么做
                 .subscribeOn(Schedulers.io())
-                .doOnNext(new Action1<NewsContent>() {
-                    @Override
-                    public void call(NewsContent newsContent) {
-                        ACache.get(MainActivity.this).put("news" , newsContent);
-                    }
-                })
+//                .doOnNext(new Action1<NewsContent>() {
+//                    @Override
+//                    public void call(NewsContent newsContent) {
+//                        ACache.get(MainActivity.this).put("news" , newsContent);
+//                    }
+//                })
 
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<NewsContent>() {
@@ -108,20 +126,25 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onNext(NewsContent newsContent) {
-                      //  Logger.d(newsContent.toString());
+                        Logger.d(newsContent.toString());
 
-                        Logger.d("000"+ ACache.get(MainActivity.this).getAsObject("news").toString());
+                        //  Logger.d("000"+ ACache.get(MainActivity.this).getAsObject("news").toString());
                         ProgressUtil.dismissDialog();//取消
                     }
                 });
 
+
+
     }
 
-
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mSubscribe.unsubscribe();
+        Logger.d("zhixing");
+    }
 
     private void loadContent() {
-
-
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(AppUrl.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
